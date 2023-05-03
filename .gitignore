@@ -6,5 +6,5 @@
 
 # Folder to not ignore
 !/legged_robot_examples/
-# except for
+# but except for
 /legged_robot_examples/generated_files/**
