@@ -1,16 +1,14 @@
 
 
 function [p, dp, xfull, xdrift, bufull, budrift, sol, Xs, Xf, Xint, U, t, x, xnew, cost, cost_all, cost_u, T_solve] = solve_HF(model,param_model,tmax,xpoints,intgrids,tpoints,X,T,params,flags,free_ind,extra_params)
-global get_EL get_G
+global get_G
 m = 0;
 x = linspace(0,T,xpoints);                  % discretization of the curve
-%t = [0 logspace(-4,log10(tmax),tpoints-1)]; % discretization of time interval
-t = [0 logspace(-6,log10(tmax),tpoints-1)];
+t = [0 logspace(-6,log10(tmax),tpoints-1)]; % discretization of time interval
 
 %---------------generate functions for HF (runtime is short if the functions already existed and not modified)----------------%
 tic;
 display('generating heat flow model...');
-%[get_EL, get_G, get_f, get_F, get_H, get_L, N, M] = model(flags, params, param_model);
 [get_f, get_F, get_H, get_L, N, M] = model(flags, params, param_model, extra_params);
 toc;
 
@@ -19,14 +17,11 @@ display('writing PDE functions...');
 make_pde_functions(N,flags,T,free_ind);
 toc;
 
-
 display('solving...');
 tic;
 profile on
 %--------------solve HF pde--------------------------%
-%opts = odeset('AbsTol',0.002);
 opts = odeset('AbsTol',extra_params('AbsTol'),'RelTol',extra_params('RelTol'));
-%sol = pdepe(m,@(x,t,u,DuDx) mypdexpde_generated(x,t,u,DuDx,params,get_EL),@(x) mypdexic_generated(x, X),@(xl,ul,xr,ur,t) mypdexbc_generated(xl,ul,xr,ur,t,X),x,t,opts);
 sol = pdepe_AGHF(x,t,X,params,opts);
 % The solution is of form sol(t,x,i)
 profile off
@@ -38,8 +33,8 @@ disp(str);
 tic;
 display('solution found, generatating path and other outputs...');
 xpoints_new = intgrids;
-budrift = zeros(M,xpoints_new);
-bufull = zeros(N,xpoints_new);
+budrift = zeros(M,xpoints_new); % admissible control
+bufull = zeros(N,xpoints_new); % full control (with virtual control)
 xnew = linspace(0,T,xpoints_new);
 p = zeros(N,xpoints_new);
 for i = 1:N
@@ -58,12 +53,14 @@ for i = 1 : xpoints_new
     budrift(:,i)= bufull((end-M+1):end,i);
 end
 
-
 %Find x^* by integrating ODE
 xfull   =   zeros(N,xpoints_new);
 xfull(:,1)  =   p(:,1); %Initial state
 xdrift   =   zeros(N,xpoints_new);
 xdrift(:,1)  =   p(:,1); %Initial state
+% the following part can be ignored if the state is not SO3 state
+%-----------------------------
+%{
 ind_nonSO3 = 1:N;
 ind_SO3 = [];
 ind_w = [];
@@ -78,12 +75,14 @@ end
 if (isKey(extra_params,'w_ind0'))
     ind_w = extra_params('w_ind0'):extra_params('w_ind0')+2;
 end
+
 admissible_control = [];
 if (isKey(extra_params,'admissible_control'))
     admissible_control = extra_params('admissible_control');
 end
-
-Rtemp = eye(3);
+%}
+%----------------------------
+%Rtemp = eye(3);
 for i =1: xpoints_new-1
     tt = t0 + i*(T/(xpoints_new-1));
     cBfull = get_F(tt,xfull(:,i));
@@ -91,8 +90,9 @@ for i =1: xpoints_new-1
     cBdrift = cBdrift_full(:,(end-M+1):end);
     drift = get_f(tt,xdrift(:,i));
     drift_full = get_f(tt,xfull(:,i));
-    %xdrift(:,i+1) = xdrift(:,i) + ( drift + cBdrift*budrift(:,i) )*(xnew(i+1)-xnew(i));
-    %xfull(:,i+1) = xfull(:,i) + ( drift_full + cBfull*bufull(:,i) )*(xnew(i+1)-xnew(i));
+    xdrift(:,i+1) = xdrift(:,i) + ( drift + cBdrift*budrift(:,i) )*(xnew(i+1)-xnew(i));
+    xfull(:,i+1) = xfull(:,i) + ( drift_full + cBfull*bufull(:,i) )*(xnew(i+1)-xnew(i));
+    %{
     xdrift(ind_nonSO3,i+1) = xdrift(ind_nonSO3,i) + ( drift(ind_nonSO3) + cBdrift(ind_nonSO3,:)*budrift(:,i) )*(xnew(i+1)-xnew(i));
     xfull(:,i+1) = xfull(:,i) + ( drift_full + cBfull*bufull(:,i) )*(xnew(i+1)-xnew(i));
     if (isKey(extra_params,'Rotm_ind0'))
@@ -114,6 +114,7 @@ for i =1: xpoints_new-1
         xdrift(ind_SO3,i+1) =  quatprod( qtemp, quatexp( (xnew(i+1)-xnew(i))*[0;omega]/2, 10) ) ;
         xfull(:,i+1) = xfull(:,i) + ( drift_full + cBfull*bufull(:,i) )*(xnew(i+1)-xnew(i));
     end
+    %}
     
 end
 
@@ -166,9 +167,6 @@ end
 function make_pde_functions(N,flags,T,free_ind)    % Define PDE; Evaluate right-hand-side of GHF
 
 %----------------generate pde function-------------------------------%
-
-%id_mypdexpde = fopen('mypdexpde_generated.m','w');
-%st = sprintf('%s\n','function [c,f,s] = mypdexpde_generated( x,t,u,DuDx,params,get_EL )');
 id_mypdexpde = fopen('generated_files\mypdexpde_generated.m','w');
 st = sprintf('%s\n','function [c,f,s] = mypdexpde_generated( x,t,u,DuDx,params)');
 st = [st sprintf('%s\n','%this function is automatically generated...')];
