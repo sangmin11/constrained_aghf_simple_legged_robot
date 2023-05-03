@@ -6,3 +6,5 @@
 
 # Folder to not ignore
 !/legged_robot_examples/
+
+/**/*.asv

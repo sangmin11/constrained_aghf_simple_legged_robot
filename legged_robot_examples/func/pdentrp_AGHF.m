@@ -1,4 +1,5 @@
 function [U,Ux] = pdentrp_AGHF(singular,m,xL,uL,xR,uR,xout)
+% customized PDENTRP, modified from original PDENTRP
 %PDENTRP  Interpolation helper function for PDEPE.
 %   [U,UX] = PDENTRP(M,XL,UL,XR,UR,XOUT) uses solution values UL at XL and UR at XR
 %   for successive mesh points XL < XR to interpolate the solution values U and

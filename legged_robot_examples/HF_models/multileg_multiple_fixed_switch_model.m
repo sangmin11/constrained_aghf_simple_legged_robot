@@ -6,15 +6,15 @@ if( isempty(get_G1) )
     
     %-------------------this portion should be edited------------------
     
-    m = param_model(1);
-    J = param_model(2);
-    g = param_model(3);
-    k_leg = param_model(4);
+    m = param_model(1); % mass
+    J = param_model(2); % inertia
+    g = param_model(3); % gravity acc
+    k_leg = param_model(4); % number of legs
     
     % symbolic states
     N = 6+4*k_leg; % # of states
     M = 4*k_leg; % # of inputs
-    k = params(1);
+    k = params(1); % k is lambda
     alpha = params(2);
     T_switch = extra_params('T_switch');
     Rmax_sq = extra_params('Rmax_sq');
@@ -52,25 +52,32 @@ if( isempty(get_G1) )
     
     % HF formulation
     
+    % all control directions
     F = eye(N);
     F = sym(F);
     
-    
+    % totol torque on CoM
     Tor_sum = 0;
     for i=1:k_leg
         Tor_sum = Tor_sum + det([Pos(:,i)-[x1;x2] Force(:,i)]);
     end
+    % drift term
     f = [ [x4 x5 x6]' ;  sum(Force,2)/m - [0;g] ; Tor_sum/J; zeros(M,1)];
     
+    % cutomized step function
     step = @(tt,tt1) heaviside(tt-tt1);
- 
+    
+    % approximation of heaviside function
     k_step = 100;
     %k_step = 50;
     heaviside_appr = @(tt) 1/(1+exp(-2*k_step*tt));
+
+    % approximation of heaviside function derivative
     a_step = 0.04;
     %a_step = 0.08;
     dirac_appr = @(tt) 1/((2*pi)^0.5*a_step)*exp(-tt^2/(2*a_step^2));
     
+    % activation functions for each leg
     Activation = [];
     for j = 1:k_leg
         activation = 1-step(tt, T_switch{j}(1) );
@@ -82,19 +89,20 @@ if( isempty(get_G1) )
         Activation = [Activation; activation];
     end
     
+    % lambda for each state
     K = diag( [k k k k k k repmat([1 1 1 1],1,k_leg)] );
     for i=1:k_leg
         K(9+4*(i-1),9+4*(i-1)) = 1 + k*Activation(i);
         K(9+4*(i-1)+1,9+4*(i-1)+1) = 1 + k*Activation(i);
     end
     
-    
+    % state constraints
     DpyDpx = [];
-    Tan = [];
-    Nor = [];
-    FNor = [];
-    FTan = [];
-    R_sq = [];
+    Tan = []; % normal direction at contact point
+    Nor = []; % tangent direction at contact point
+    FNor = []; % contact force normal
+    FTan = []; % contact force tangent
+    R_sq = []; % contact point to CoM distance square
     dterrain_func = @(x) diff(terrain_func(x),x);
     for i = 1:k_leg
         dpydpx = dterrain_func(Pos(1,i));
@@ -108,17 +116,29 @@ if( isempty(get_G1) )
         R_sq = [R_sq (Pos(1,i)-x1)^2+(Pos(2,i)-x2)^2];
     end
     
+    % min CoM height
     ymin = 0.3;
     
-    
+    %initialize the state constraints cost, b
     b = k*(x2-ymin)^2*(1-step(x2,ymin));
+
+    % predefine max contanct force
     ForceMax = 4*m*g/k_leg;
     
+    % sum up all state constraint for all legs
     for i = 1:k_leg
         
         pknee = find_knee(X(1:2),Pos(:,i),0.65,0.65,1);
         FnormSqr = Force(1,i)^2+Force(2,i)^2;
         
+        % the constraints include:
+        % zero force in flight phase, contact point to CoM distance,
+        % non-negative contact normal force when in stance phase
+        % friction cone
+        % foot on terrain in stance phase
+        % foot above terrain in flght phase
+        % max contact force
+        % knee height constraint
         b = b + ( k*Force(1,i)^2+k*Force(2,i)^2 )*(1-Activation(i)) + 10*k*(R_sq(i)-Rmax_sq)^2*step(R_sq(i),Rmax_sq) + ...
          k*FNor(i)^2*(1-step(FNor(i),0))*Activation(i) + ...
          k*(FTan(i)+mu*FNor(i))^2*(1-step(FTan(i)+mu*FNor(i),0))*Activation(i) + ...
@@ -129,6 +149,7 @@ if( isempty(get_G1) )
          5*k*(pknee(2)-0.00)^2*(1-step(pknee(2)-0.00,0));
     end
     
+    % calculate the overall Lagrangian L
     H = (F.')^(-1)*K*F^(-1);
     G = H;
     L = (Xd - f*alpha).' * G * (Xd - f*alpha) + b;
@@ -137,6 +158,8 @@ if( isempty(get_G1) )
     
     %---------the following part are generic, don't need to edit----------%
     
+    % get Euler Lagrange euqation symbolically
+    % get dL/dx and dL/ddx
     pLx = sym('pLx', [N 1],'real');
     pLxd = sym('pLxd', [N 1],'real');
     for i=1:N
@@ -144,6 +167,7 @@ if( isempty(get_G1) )
         pLxd(i) = diff(L,Xd(i));
     end
     
+    % replace the heaviside funtion with customized heaviside function
     for i=1:N    
         temp_cell = arrayfun(@char, pLx(i), 'uniform', 0);
         str_temp = strrep(temp_cell{1},'heaviside','heaviside_appr');
@@ -156,11 +180,8 @@ if( isempty(get_G1) )
         pLxd(i) =  eval( evalin(symengine,str_temp) );
     end
     
-    
+    % generate functions
     in2 = [X;in];
-    %get_EL = matlabFunction([pLx, pLxd],'vars',[tt,X',Xd',in'],'File','generated_files\get_EL');
-    %get_G = matlabFunction(G,'vars', {tt,X,in},'File','generated_files\get_G');
-    %get_f = matlabFunction(f,'vars',{tt,X},'File','generated_files\get_f');
     get_EL = matlabFunction([pLx, pLxd],'vars',[tt,X',Xd',in']);
     get_G = matlabFunction(G,'vars', {tt,X,in});
     get_f = matlabFunction(f,'vars',{tt,X});

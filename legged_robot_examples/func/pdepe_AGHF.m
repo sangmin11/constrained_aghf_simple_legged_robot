@@ -1,5 +1,5 @@
 function varargout = pdepe_AGHF(xmesh,t,X,params,options)
-%PDEPE for AGHF  modified from pdepe
+%customized PDEPE for AGHF (modified from original pdepe)
 
 m=0;
 

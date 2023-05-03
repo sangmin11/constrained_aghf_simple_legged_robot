@@ -1,5 +1,5 @@
 function p_knee = find_knee(p_hip, p_foot, r1, r2, flag)
-
+% find the knee posiiton given hip and foot position and link length
 x1 = p_hip(1);
 y1 = p_hip(2);
 x2 = p_foot(1);

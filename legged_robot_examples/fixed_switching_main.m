@@ -12,7 +12,7 @@ J = 1; %inertia
 g = 9.8; % gravity
 k_leg = 2; % # of legs
 param_model = [m J g k_leg];
-Rmax_sq = 1; % max radius the feet can reach
+Rmax_sq = 1; % max radius (from CoM) the feet can reach
 mu = 1; % friction coefficient
 
 extra_params = containers.Map; % a map for extra parameters
@@ -33,7 +33,7 @@ k =  500000;
 alpha = 1; % scaler of the drift term
 T = 2; % total time
 
-%---------------------predefined gait---------------------------
+%---------------------predefined gait schedule---------------------------
 steps = 3;
 dT = T/(2*steps+1); %for same stance and flight phase duration
 r_stance = 0.5; %stance phase ratio, for different stance and flight phase duration
@@ -50,7 +50,7 @@ for i = 1:2*steps
         t_switch1 = [t_switch1 i/2*dT_1step];
     end
 end
-% leg 2 has a timing delay 0.05s than leg 1
+% leg 2 has a timing delay 0.1s than leg 1
 t_switch2 = t_switch1-0.05;  %need to rebuild model if timing is changed
 
 
@@ -66,9 +66,10 @@ Xf = [1.5; 0.75; 0;   0.5; 0; 0;    1;1;1.5;0;   1;1;1.5;0];
 
 
 Xinit = [X0 Xf];
-% flags for free boudanry values
-free_ind = [0 0 0   0 0 0   1 1 0 0  1 1 0 0;  %first column: initial value
-            0 0 0   0 0 0   1 1 0 0  1 1 0 0]'; %second column: final value
+% flags for free boudanry values, 0 for fixed value (specified by X0 and Xf)
+% 1 for free
+free_ind = [0 0 0   0 0 0   1 1 0 1  1 1 0 1;  %first column: initial value
+            0 0 0   0 0 0   1 1 0 1  1 1 0 1]'; %second column: final value
 
 
 
@@ -78,9 +79,8 @@ extra_params('RelTol') = 1;
 [p, dp, xfull, xdrift, bufull, budrift, sol, Xs, Xf, Xint, U, s, t, tint, cost, cost_all, cost_u] = solve_HF(@multileg_multiple_fixed_switch_model,param_model,smax,tgrids,intgrids,sgrids,Xinit,T,params,flags,free_ind,extra_params);
 %-------------------------------------------------------------------------%
 %% plot and animation
-w_robot = 0.4;
-h_robot = 0.3;
-l1=0.6; l2=0.6;
-force_scale = 0.008;
-%force_scale = 0.002;
+w_robot = 0.4; % width of torso
+h_robot = 0.3; % height of torso
+l1=0.65; l2=0.65; % link length
+force_scale = 0.008; % force scaler for animation
 run('multileg_multisteps_plot.m');

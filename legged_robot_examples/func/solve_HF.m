@@ -58,31 +58,7 @@ xfull   =   zeros(N,xpoints_new);
 xfull(:,1)  =   p(:,1); %Initial state
 xdrift   =   zeros(N,xpoints_new);
 xdrift(:,1)  =   p(:,1); %Initial state
-% the following part can be ignored if the state is not SO3 state
-%-----------------------------
-%{
-ind_nonSO3 = 1:N;
-ind_SO3 = [];
-ind_w = [];
-if (isKey(extra_params,'Rotm_ind0'))
-    ind_nonSO3(extra_params('Rotm_ind0'):extra_params('Rotm_ind0')+8) = [];
-    ind_SO3 = extra_params('Rotm_ind0'):extra_params('Rotm_ind0')+8;
-end
-if (isKey(extra_params,'Quat_ind0'))
-    ind_nonSO3(extra_params('Quat_ind0'):extra_params('Quat_ind0')+3) = [];
-    ind_SO3 = extra_params('Quat_ind0'):extra_params('Quat_ind0')+3;
-end
-if (isKey(extra_params,'w_ind0'))
-    ind_w = extra_params('w_ind0'):extra_params('w_ind0')+2;
-end
 
-admissible_control = [];
-if (isKey(extra_params,'admissible_control'))
-    admissible_control = extra_params('admissible_control');
-end
-%}
-%----------------------------
-%Rtemp = eye(3);
 for i =1: xpoints_new-1
     tt = t0 + i*(T/(xpoints_new-1));
     cBfull = get_F(tt,xfull(:,i));
@@ -90,32 +66,9 @@ for i =1: xpoints_new-1
     cBdrift = cBdrift_full(:,(end-M+1):end);
     drift = get_f(tt,xdrift(:,i));
     drift_full = get_f(tt,xfull(:,i));
+    %integration
     xdrift(:,i+1) = xdrift(:,i) + ( drift + cBdrift*budrift(:,i) )*(xnew(i+1)-xnew(i));
-    xfull(:,i+1) = xfull(:,i) + ( drift_full + cBfull*bufull(:,i) )*(xnew(i+1)-xnew(i));
-    %{
-    xdrift(ind_nonSO3,i+1) = xdrift(ind_nonSO3,i) + ( drift(ind_nonSO3) + cBdrift(ind_nonSO3,:)*budrift(:,i) )*(xnew(i+1)-xnew(i));
-    xfull(:,i+1) = xfull(:,i) + ( drift_full + cBfull*bufull(:,i) )*(xnew(i+1)-xnew(i));
-    if (isKey(extra_params,'Rotm_ind0'))
-        Rtemp = reshape(xdrift(ind_SO3,i),3,3);
-        xdrift(ind_SO3,i+1) = ToColVec( Rtemp*expm((xnew(i+1)-xnew(i))*skew(xdrift(ind_w,i))) );
-        xfull(:,i+1) = xfull(:,i) + ( drift_full + cBfull*bufull(:,i) )*(xnew(i+1)-xnew(i));
-    end
-    omega = [0 0 0]';
-    if (isKey(extra_params,'Quat_ind0'))
-        qtemp = xdrift(ind_SO3,i);
-        if (isKey(extra_params,'w_ind0'))
-            omega = xdrift(ind_w,i);
-        else
-            %w_star = [0 2*pi 0]';
-            %w_star = [0 0 2*pi]';
-            w_star = [0 0 0]';
-            omega(admissible_control-4) = budrift(:,i) + w_star(admissible_control-4);
-        end
-        xdrift(ind_SO3,i+1) =  quatprod( qtemp, quatexp( (xnew(i+1)-xnew(i))*[0;omega]/2, 10) ) ;
-        xfull(:,i+1) = xfull(:,i) + ( drift_full + cBfull*bufull(:,i) )*(xnew(i+1)-xnew(i));
-    end
-    %}
-    
+    xfull(:,i+1) = xfull(:,i) + ( drift_full + cBfull*bufull(:,i) )*(xnew(i+1)-xnew(i));    
 end
 
 %-----------------calculate cost------------------------------%
@@ -141,7 +94,6 @@ for kk = 1:tpoints
         udrift= ufull((end-M+1));
         cost_all(kk) = cost_all(kk) + (dX-f)'*H*(dX-f)*(T/(xpoints-1));
         cost_u(kk) = cost_u(kk) + udrift'*udrift*(T/(xpoints-1));
-        %cost(kk) = cost(kk) + (dX-f)'*G*(dX-f)*(T/(xpoints-1));
         cost(kk) = cost(kk) + L*(T/(xpoints-1));
         
     end
@@ -190,12 +142,9 @@ st = [st sprintf('%s\n',st1)];
 
 st = [st sprintf('%s\n','pLx = EL(:,1);')];
 st = [st sprintf('%s\n','pLxd = EL(:,2);')];
-%st = [st sprintf('%s\n','G = get_G(x,u,transpose(params));')];
 st = [st sprintf('%s\n','c = ones(N,1);')];
 st = [st sprintf('%s\n','f = pLxd;')];
 st = [st sprintf('%s\n','s = -pLx;')];
-%st = [st sprintf('%s\n','f = G^(-1)*pLxd;')];
-%st = [st sprintf('%s\n','s = -G^(-1)*pLx;')];
 st = [st sprintf('%s\n','end')];
 
 fprintf(id_mypdexpde,'%s', st);
