@@ -1,6 +1,7 @@
 %% 3D dynamic unicycle main (quaternion)
 clear;
 clc;
+restoredefaultpath;
 addpath('func');
 addpath('HF_models');
 addpath('generated_files');

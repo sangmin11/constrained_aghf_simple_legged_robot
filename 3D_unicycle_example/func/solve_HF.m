@@ -1,7 +1,7 @@
 
 
 function [p, dp, xfull, xdrift, bufull, budrift, sol, Xs, Xf, Xint, U, t, x, xnew, cost, cost_all, cost_u, T_solve] = solve_HF(model,param_model,tmax,xpoints,intgrids,tpoints,X,T,params,flags,free_ind,extra_params)
-
+global get_G
 m = 0;
 x = linspace(0,T,xpoints);                  % discretization of the curve
 %t = [0 logspace(-4,log10(tmax),tpoints-1)]; % discretization of time interval
@@ -172,6 +172,7 @@ function make_pde_functions(N,flags,T,free_ind)    % Define PDE; Evaluate right-
 id_mypdexpde = fopen('generated_files\mypdexpde_generated.m','w');
 st = sprintf('%s\n','function [c,f,s] = mypdexpde_generated( x,t,u,DuDx,params)');
 st = [st sprintf('%s\n','%this function is automatically generated...')];
+st = [st sprintf('%s\n','global get_EL get_G')];
 st = [st sprintf('%s\n','N = length(u);')];
 
 st1 = 'EL = get_EL(x,u(1)';

@@ -1,6 +1,6 @@
 % one massless leg model
 function [get_f, get_F, get_H, get_L, N, M] = DynamicUnicycle3D_quat_model(flags, params, param_model, extra_params)
-
+global get_EL get_G
 persistent get_EL1 get_G1 get_f1 get_F1 get_H1 get_L1 N1 M1
 if( isempty(get_G1) )
     

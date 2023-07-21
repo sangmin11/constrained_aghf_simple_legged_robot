@@ -7,6 +7,5 @@
 # Folder to not ignore
 !/legged_robot_examples/
 !/3D_unicycle_example/
-!/SCA_example/
 
 /**/*.asv
