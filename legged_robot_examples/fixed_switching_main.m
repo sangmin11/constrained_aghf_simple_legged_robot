@@ -1,6 +1,7 @@
 %% multi legs with fixed switch time, mutiple steps, main
 clear;
 clc;
+restoredefaultpath;
 addpath('func');
 addpath('HF_models');
 addpath('generated_files');
