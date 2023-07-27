@@ -1,6 +1,7 @@
 %% soft continuum arm main
 %clear;
 %clc;
+restoredefaultpath;
 addpath('func');
 addpath('HF_models');
 addpath('generated_files');

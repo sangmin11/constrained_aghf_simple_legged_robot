@@ -1,5 +1,0 @@
-# Ignore auto generated files
-/generated_files/
-
-# Files to not ignore
-!/.gitignore

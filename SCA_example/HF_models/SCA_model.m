@@ -1,6 +1,5 @@
 % one massless leg model
 function [get_f, get_F, get_H, get_L, N, M] = SCA_model(flags, params, param_model, extra_params)
-
 %-------------------this portion should be edited------------------
 
 % symbolic states

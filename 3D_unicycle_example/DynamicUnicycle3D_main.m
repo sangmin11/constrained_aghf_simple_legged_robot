@@ -4,6 +4,7 @@ clc;
 restoredefaultpath;
 addpath('func');
 addpath('HF_models');
+mkdir('generated_files');
 addpath('generated_files');
 addpath('plot');
 
