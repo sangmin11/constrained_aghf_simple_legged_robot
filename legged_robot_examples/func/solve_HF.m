@@ -119,7 +119,7 @@ end
 function make_pde_functions(N,flags,T,free_ind)    % Define PDE; Evaluate right-hand-side of GHF
 
 %----------------generate pde function-------------------------------%
-id_mypdexpde = fopen('generated_files\mypdexpde_generated.m','w');
+id_mypdexpde = fopen('generated_files/mypdexpde_generated.m','w');
 st = sprintf('%s\n','function [c,f,s] = mypdexpde_generated( x,t,u,DuDx,params)');
 st = [st sprintf('%s\n','%this function is automatically generated...')];
 st = [st sprintf('%s\n','global get_EL get_G')];
@@ -152,7 +152,7 @@ fclose(id_mypdexpde);
 
 %------------------generate ic function------------------------------%
 
-id_mypdexic = fopen('generated_files\mypdexic_generated.m','w');
+id_mypdexic = fopen('generated_files/mypdexic_generated.m','w');
 st = sprintf('%s\n','function u0 = mypdexic_generated(x, X)');
 st = [st sprintf('%s\n','%this function is automatically generated...')];
 st = [st sprintf('%s\n','X0 = X(:,1);')];
@@ -179,7 +179,7 @@ fclose(id_mypdexic);
 
 %------------------generate bc function------------------------------%
 
-id_mypdexbc = fopen('generated_files\mypdexbc_generated.m','w');
+id_mypdexbc = fopen('generated_files/mypdexbc_generated.m','w');
 st = sprintf('%s\n','function [pl,ql,pr,qr] = mypdexbc_generated(xl,ul,xr,ur,t,X) % Boundary condition');
 st = [st sprintf('%s\n','%this function is automatically generated...')];
 st = [st sprintf('%s\n','X0 = X(:,1);')];
