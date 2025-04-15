@@ -8,6 +8,7 @@
 !/legged_robot_examples/
 !/3D_unicycle_example/
 !/diver_robot_example/
+!/legged_robot_examples_add_constratints/
 
 /**/*.asv
 **/generated_files/
